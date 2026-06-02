@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'visitor',
@@ -47,6 +50,92 @@ describe(square)   // "Square (side 4)"
 // zero changes to the existing visitors or shapes.
 `
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+type Shape = Circle | Square
+interface Circle { type: 'circle'; r: number }
+interface Square { type: 'square'; s: number }
+
+interface ShapeVisitors<R> {
+  circle: (c: Circle) => R
+  square: (s: Square) => R
+}
+
+const visit = <R,>(visitors: ShapeVisitors<R>) =>
+  (node: Shape): R => {
+    switch (node.type) {
+      case 'circle': return visitors.circle(node)
+      case 'square': return visitors.square(node)
+    }
+  }
+
+const circle: Circle = { type: 'circle', r: 3 }
+const square: Square = { type: 'square', s: 4 }
+const shapes: Shape[] = [circle, square]
+
+const areaVisitors: ShapeVisitors<number> = {
+  circle: ({ r }: Circle) => Math.PI * r * r,
+  square: ({ s }: Square) => s * s,
+}
+
+const perimeterVisitors: ShapeVisitors<number> = {
+  circle: ({ r }: Circle) => 2 * Math.PI * r,
+  square: ({ s }: Square) => 4 * s,
+}
+
+const describeVisitors: ShapeVisitors<string> = {
+  circle: ({ r }: Circle) => `Circle (radius ${r})`,
+  square: ({ s }: Square) => `Square (side ${s})`,
+}
+
+const area = visit(areaVisitors)
+const perimeter = visit(perimeterVisitors)
+const describe = visit(describeVisitors)
+
+function VisitorWidget(): ReactNode {
+  const [visitorKey, setVisitorKey] = useState<string>('area')
+
+  const resultFn = (shape: Shape): string => {
+    switch (visitorKey) {
+      case 'area': return area(shape).toFixed(2)
+      case 'perimeter': return perimeter(shape).toFixed(2)
+      case 'describe': return describe(shape)
+      default: return ''
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label htmlFor="visitor-select" className="text-sm font-medium text-slate-700">
+          Visitor:
+        </label>
+        <select
+          id="visitor-select"
+          value={visitorKey}
+          onChange={(e) => setVisitorKey(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="area">Area</option>
+          <option value="perimeter">Perimeter</option>
+          <option value="describe">Describe</option>
+        </select>
+      </div>
+
+      <div className="space-y-1">
+        {shapes.map((shape) => (
+          <div key={shape.type} className="flex justify-between text-sm text-slate-600">
+            <span>{describe(shape)}</span>
+            <span className="font-mono">{resultFn(shape)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function VisitorPattern(): ReactNode {
   return (
     <>
@@ -77,6 +166,13 @@ export default function VisitorPattern(): ReactNode {
           function that looks up the handler and calls it.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Element «interface»', 'Visitor «interface»', 'ConcreteElement (Circle)', 'ConcreteElement (Square)', 'ConcreteVisitor (Area)']}
+            fp={['tagged union Shape', 'visit(visitors)', 'areaVisitors', 'describeVisitors', 'perimeterVisitors']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, <code>visit</code> is a curried function that takes a{' '}
@@ -97,6 +193,14 @@ export default function VisitorPattern(): ReactNode {
           Add another handler to each map — the compiler (or your tests) will
           tell you where you missed one.
         </Callout>
+
+        <Widget title="Try the visitors">
+          <VisitorWidget />
+        </Widget>
+
+        <Diagram caption="Data flow through a visitor dispatch">
+          <FlowDiagram steps={['shapes', 'visit(visitors)', 'result']} />
+        </Diagram>
       </div>
     </>
   )
