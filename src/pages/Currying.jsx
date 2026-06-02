@@ -1,4 +1,6 @@
+import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
+import Callout from '../components/Callout'
 
 const curryingExample = `// curry – transforms a multi-arg function into nested unary functions
 const curry = (fn) =>
@@ -39,56 +41,49 @@ doubleEvens([1, 2, 3, 4, 5, 6]) // [4, 8, 12]`
 
 export default function Currying() {
   return (
-    <article className="prose prose-gray mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-black">
-        Currying &amp; Partial Application
-      </h1>
-      <p className="mt-4 leading-relaxed text-gray-500">
-        Currying turns a function that takes multiple arguments into a sequence
-        of functions, each taking a single argument. Partial application lets
-        you fix some arguments upfront and defer the rest. Both techniques make
-        functions more reusable and compose better.
-      </p>
+    <>
+      <StepHeader
+        order={5}
+        title="Currying &amp; Partial Application"
+        intro="Currying turns a function that takes multiple arguments into a sequence of functions, each taking a single argument. Partial application lets you fix some arguments upfront and defer the rest. Both techniques make functions more reusable and compose better."
+      />
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        When to use it
-      </h2>
-      <ul className="mt-3 space-y-2 text-gray-500">
-        <li>You want to create specialised functions from more general ones.</li>
-        <li>You&rsquo;re building data pipelines where each step expects a single argument.</li>
-        <li>You need to defer execution until all data is available.</li>
-        <li>You want better separation of configuration from execution.</li>
-      </ul>
+      <div className="prose prose-slate max-w-none prose-headings:scroll-mt-20 prose-a:text-blue-700 prose-code:text-slate-800 prose-pre:bg-transparent prose-pre:p-0">
+        <h2>When to use it</h2>
+        <ul>
+          <li>You want to create specialised functions from more general ones.</li>
+          <li>You&rsquo;re building data pipelines where each step expects a single argument.</li>
+          <li>You need to defer execution until all data is available.</li>
+          <li>You want better separation of configuration from execution.</li>
+        </ul>
 
-      <h2 className="mt-10 text-xl font-medium text-black">Currying</h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        A generic <code>curry</code> implementation keeps collecting arguments
-        until it has enough to call the original function.
-      </p>
-      <div className="mt-4">
+        <h2>Currying</h2>
+        <p>
+          A generic <code>curry</code> implementation keeps collecting arguments
+          until it has enough to call the original function.
+        </p>
         <CodeBlock code={curryingExample} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Partial application
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Simpler than full currying — just pre-fill some arguments.
-      </p>
-      <div className="mt-4">
+        <h2>Partial application</h2>
+        <p>
+          Simpler than full currying — just pre-fill some arguments.
+        </p>
         <CodeBlock code={partialExample} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Currying in pipelines
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Currying pairs well with <code>pipe</code> and{' '}
-        <code>compose</code> because each step naturally receives one argument.
-      </p>
-      <div className="mt-4">
+        <h2>Currying in pipelines</h2>
+        <p>
+          Currying pairs well with <code>pipe</code> and <code>compose</code>{' '}
+          because each step naturally receives one argument.
+        </p>
         <CodeBlock code={filterMapExample} />
+
+        <Callout tone="tip" title="Currying vs partial application">
+          Currying always produces unary functions; partial application
+          returns a function that may still accept multiple arguments.
+          Use currying when you need maximum composability; use partial
+          when you just want to lock in a few arguments.
+        </Callout>
       </div>
-    </article>
+    </>
   )
 }

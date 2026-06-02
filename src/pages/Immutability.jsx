@@ -1,4 +1,6 @@
+import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
+import Callout from '../components/Callout'
 
 const immutableUpdatesCode = `// ❌ Mutation – avoids
 const items = [1, 2, 3]
@@ -65,62 +67,51 @@ const deepFreeze = (obj) => {
 const frozen = deepFreeze({ a: { b: 2 } })
 // Any attempt to mutate throws in strict mode`
 
-
 export default function Immutability() {
   return (
-    <article className="prose prose-gray mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-black">
-        Immutability
-      </h1>
-      <p className="mt-4 leading-relaxed text-gray-500">
-        Immutability means data, once created, is never changed. Instead of
-        mutating an existing value, you create a new one. This eliminates a
-        whole class of bugs caused by shared mutable state and makes your
-        program easier to reason about.
-      </p>
+    <>
+      <StepHeader
+        order={7}
+        title="Immutability"
+        intro="Immutability means data, once created, is never changed. Instead of mutating an existing value, you create a new one. This eliminates a whole class of bugs caused by shared mutable state and makes your program easier to reason about."
+      />
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        When to use it
-      </h2>
-      <ul className="mt-3 space-y-2 text-gray-500">
-        <li>Predictable state management: no surprise mutations from elsewhere.</li>
-        <li>Change detection is trivial — reference equality checks.</li>
-        <li>Undo/redo and time-travel debugging become straightforward.</li>
-        <li>Concurrent or async code: no shared mutable state to worry about.</li>
-      </ul>
+      <div className="prose prose-slate max-w-none prose-headings:scroll-mt-20 prose-a:text-blue-700 prose-code:text-slate-800 prose-pre:bg-transparent prose-pre:p-0">
+        <h2>When to use it</h2>
+        <ul>
+          <li>Predictable state management: no surprise mutations from elsewhere.</li>
+          <li>Change detection is trivial — reference equality checks.</li>
+          <li>Undo/redo and time-travel debugging become straightforward.</li>
+          <li>Concurrent or async code: no shared mutable state to worry about.</li>
+        </ul>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Immutable updates
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Use spread syntax, <code>map</code>, <code>filter</code>, and{' '}
-        <code>slice</code> to produce new values instead of mutating.
-      </p>
-      <div className="mt-4">
+        <h2>Immutable updates</h2>
+        <p>
+          Use spread syntax, <code>map</code>, <code>filter</code>, and{' '}
+          <code>slice</code> to produce new values instead of mutating.
+        </p>
         <CodeBlock code={immutableUpdatesCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Array operations without mutation
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Insert, remove, and replace are all expressible as transforms that
-        return new arrays.
-      </p>
-      <div className="mt-4">
+        <h2>Array operations without mutation</h2>
+        <p>
+          Insert, remove, and replace are all expressible as transforms that
+          return new arrays.
+        </p>
         <CodeBlock code={arrayOpsCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Defence in depth
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        <code>Object.freeze</code> and shallow/deep freeze helpers can catch
-        accidental mutations during development.
-      </p>
-      <div className="mt-4">
+        <h2>Defence in depth</h2>
+        <p>
+          <code>Object.freeze</code> and shallow/deep freeze helpers can catch
+          accidental mutations during development.
+        </p>
         <CodeBlock code={deepFreezeCode} />
+
+        <Callout tone="info" title="Immutability in React">
+          React relies on immutable state updates for efficient re-rendering.
+          When state references change, React knows exactly which components
+          need updating — no deep comparisons required.
+        </Callout>
       </div>
-    </article>
+    </>
   )
 }

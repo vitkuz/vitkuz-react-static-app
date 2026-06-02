@@ -1,4 +1,6 @@
+import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
+import Callout from '../components/Callout'
 
 const eitherCode = `// Either pattern – wrap a value that may be null/undefined
 const Either = {
@@ -69,60 +71,50 @@ safeEmail(42) // 'No email found'`
 
 export default function Maybe() {
   return (
-    <article className="prose prose-gray mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-black">
-        Either / Maybe Pattern
-      </h1>
-      <p className="mt-4 leading-relaxed text-gray-500">
-        The Either (or Maybe) pattern wraps a value that may be absent. A{' '}
-        <code>Right</code> holds a valid value; a <code>Left</code> signals
-        nothing. Operations are chained via <code>map</code> and{' '}
-        <code>chain</code>, so you never need to scatter{' '}
-        <code>if (x != null)</code> guards throughout your code.
-      </p>
+    <>
+      <StepHeader
+        order={9}
+        title="Either / Maybe Pattern"
+        intro='The Either (or Maybe) pattern wraps a value that may be absent. A Right holds a valid value; a Left signals nothing. Operations are chained via map and chain, so you never need to scatter if (x != null) guards throughout your code.'
+      />
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        When to use it
-      </h2>
-      <ul className="mt-3 space-y-2 text-gray-500">
-        <li>You have optional or nullable values (missing user, failed lookup).</li>
-        <li>You want to chain operations on a value that might not exist.</li>
-        <li>You want the &ldquo;happy path&rdquo; to read cleanly, without null checks.</li>
-        <li>You need to handle the absence explicitly at the boundary.</li>
-      </ul>
+      <div className="prose prose-slate max-w-none prose-headings:scroll-mt-20 prose-a:text-blue-700 prose-code:text-slate-800 prose-pre:bg-transparent prose-pre:p-0">
+        <h2>When to use it</h2>
+        <ul>
+          <li>You have optional or nullable values (missing user, failed lookup).</li>
+          <li>You want to chain operations on a value that might not exist.</li>
+          <li>You want the &ldquo;happy path&rdquo; to read cleanly, without null checks.</li>
+          <li>You need to handle the absence explicitly at the boundary.</li>
+        </ul>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Lightweight Either implementation
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        No library needed — a plain object with a few static methods.
-      </p>
-      <div className="mt-4">
+        <h2>Lightweight Either implementation</h2>
+        <p>
+          No library needed — a plain object with a few static methods.
+        </p>
         <CodeBlock code={eitherCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Safe lookup with Either
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Using the Either wrapper, every step in the pipeline is safe —{' '}
-        <code>map</code> and <code>chain</code> are no-ops when the value is
-        absent.
-      </p>
-      <div className="mt-4">
+        <h2>Safe lookup with Either</h2>
+        <p>
+          Using the Either wrapper, every step in the pipeline is safe —{' '}
+          <code>map</code> and <code>chain</code> are no-ops when the value is
+          absent.
+        </p>
         <CodeBlock code={safeLookupCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Composing with pipe
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Combine Either with <code>pipe</code> (from the Composition page) for
-        a clean, readable pipeline.
-      </p>
-      <div className="mt-4">
+        <h2>Composing with pipe</h2>
+        <p>
+          Combine Either with <code>pipe</code> (from the Composition page) for
+          a clean, readable pipeline.
+        </p>
         <CodeBlock code={pipeComposeCode} />
+
+        <Callout tone="tip" title="Beyond Either">
+          This pattern scales to other types like <code>Result</code> (Ok/Err
+          for error handling), <code>AsyncResult</code>, or <code>Validation</code>.
+          Once you&rsquo;re comfortable with Either, these follow the same
+          map/chain/fold structure.
+        </Callout>
       </div>
-    </article>
+    </>
   )
 }

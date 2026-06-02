@@ -1,59 +1,72 @@
 import { NavLink } from 'react-router-dom'
+import { getSections } from '../routes.config'
 
-const links = [
-  { to: '/docs', label: 'Introduction', end: true },
-  { to: '/docs/getting-started', label: 'Getting Started' },
-]
+export default function Sidebar({ open, onClose }) {
+  const sections = getSections()
 
-const patternLinks = [
-  { to: '/docs/patterns/composition', label: 'Composition' },
-  { to: '/docs/patterns/currying', label: 'Currying' },
-  { to: '/docs/patterns/higher-order-functions', label: 'Higher-Order Functions' },
-  { to: '/docs/patterns/immutability', label: 'Immutability' },
-  { to: '/docs/patterns/memoization', label: 'Memoization' },
-  { to: '/docs/patterns/maybe', label: 'Either / Maybe' },
-]
-
-export default function Sidebar() {
   return (
-    <aside className="w-56 shrink-0 border-r border-gray-200 px-4 py-8 lg:block hidden">
-      <nav className="flex flex-col gap-0.5">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            className={({ isActive }) =>
-              `rounded-md px-3 py-1.5 text-sm transition-colors ${
-                isActive
-                  ? 'bg-gray-100 font-medium text-black'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-        <div className="mt-6 mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-          Patterns
+    <>
+      {/* Mobile scrim */}
+      <div
+        className={`fixed inset-0 z-30 bg-slate-900/40 transition-opacity md:hidden ${
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={onClose}
+      />
+
+      {/* Sidebar drawer/aside */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-72 transform overflow-y-auto border-r border-slate-200 bg-white transition-transform md:sticky md:top-0 md:h-screen md:w-[var(--sidebar-width)] md:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Brand block */}
+        <div className="border-b border-slate-200 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
+            Functional JS
+          </p>
+          <p className="mt-1 text-lg font-bold leading-tight text-slate-900">
+            Programming Patterns
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            A step-by-step guide
+          </p>
         </div>
-        {patternLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end
-            className={({ isActive }) =>
-              `rounded-md px-3 py-1.5 text-sm transition-colors ${
-                isActive
-                  ? 'bg-gray-100 font-medium text-black'
-                  : 'text-gray-500 hover:text-black hover:bg-gray-50'
-              }`
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+
+        {/* Nav groups */}
+        <nav className="px-3 py-4">
+          {sections.map(([section, links]) => (
+            <div key={section} className="mb-6">
+              <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {section}
+              </p>
+              <ul className="space-y-0.5">
+                {links.map((link) => (
+                  <li key={link.path}>
+                    <NavLink
+                      to={link.path}
+                      end={link.path === '/'}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `flex items-start gap-2 rounded-md px-2 py-1.5 text-sm transition ${
+                          isActive
+                            ? 'bg-blue-50 font-semibold text-blue-700'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`
+                      }
+                    >
+                      <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-xs text-slate-400">
+                        {link.step}
+                      </span>
+                      <span className="flex-1">{link.label}</span>
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </aside>
+    </>
   )
 }
