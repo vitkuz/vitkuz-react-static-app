@@ -10,6 +10,8 @@ import Immutability from './pages/Immutability'
 import Memoization from './pages/Memoization'
 import Maybe from './pages/Maybe'
 import NotFound from './pages/NotFound'
+import Patterns from './pages/Patterns'
+import PatternDetail from './pages/PatternDetail'
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
         <Route path="docs/patterns/immutability" element={<Immutability />} />
         <Route path="docs/patterns/memoization" element={<Memoization />} />
         <Route path="docs/patterns/maybe" element={<Maybe />} />
+        <Route path="patterns" element={<Patterns />} />
+        <Route path="patterns/:slug" element={<PatternDetail />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
