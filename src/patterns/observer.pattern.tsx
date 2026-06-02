@@ -1,8 +1,11 @@
+import { useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'observer',
@@ -65,6 +68,97 @@ const useAuth = () => {
   return user
 }`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+type ObserverFn<T> = (value: T) => void
+type UnsubscribeFn = () => void
+
+interface Subject<T> {
+  subscribe: (fn: ObserverFn<T>) => UnsubscribeFn
+  notify: (value: T) => void
+}
+
+const createSubject = <T,>(): Subject<T> => {
+  const subs = new Set<ObserverFn<T>>()
+  return {
+    subscribe: (fn) => (subs.add(fn), () => {
+      subs.delete(fn)
+    }),
+    notify: (value) => subs.forEach((fn) => fn(value)),
+  }
+}
+
+const OBSERVER_NAMES = ['Logger A', 'Logger B', 'Logger C'] as const
+
+function ObserverWidget(): ReactNode {
+  const [subject] = useState(() => createSubject<{ count: number }>())
+  const unsubsRef = useRef<Record<string, UnsubscribeFn | undefined>>({})
+  const [toggles, setToggles] = useState<Record<string, boolean>>({
+    'Logger A': false,
+    'Logger B': false,
+    'Logger C': false,
+  })
+  const [values, setValues] = useState<Record<string, string>>({
+    'Logger A': '\u2014',
+    'Logger B': '\u2014',
+    'Logger C': '\u2014',
+  })
+  const [count, setCount] = useState(0)
+
+  const toggle = (name: string) => {
+    setToggles((prev) => {
+      const active = !prev[name]
+      if (active) {
+        unsubsRef.current[name] = subject.subscribe((v) => {
+          setValues((prev) => ({ ...prev, [name]: JSON.stringify(v) }))
+        })
+      } else {
+        unsubsRef.current[name]?.()
+        delete unsubsRef.current[name]
+        setValues((prev) => ({ ...prev, [name]: '\u2014' }))
+      }
+      return { ...prev, [name]: active }
+    })
+  }
+
+  const emit = () => {
+    const next = count + 1
+    setCount(next)
+    subject.notify({ count: next })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {OBSERVER_NAMES.map((name) => (
+          <div key={name} className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={toggles[name]}
+                onChange={() => toggle(name)}
+                className="rounded border-slate-300"
+              />
+              {name}
+            </label>
+            <span className="font-mono text-sm text-slate-600">
+              {values[name]}
+            </span>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={emit}
+        className="rounded-md border border-slate-300 px-2 py-1 text-sm hover:bg-slate-100"
+      >
+        Emit
+      </button>
+    </div>
+  )
+}
+
 export default function ObserverPattern(): ReactNode {
   return (
     <>
@@ -99,6 +193,13 @@ export default function ObserverPattern(): ReactNode {
           <code>Subject</code> class — just closures and higher-order functions.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Subject', 'Observer «interface»', 'ConcreteSubject', 'ConcreteObserver']}
+            fp={['createSubject()', 'subscribe(fn) → unsub', 'notify(value)', 'Listener functions']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, <code>createSubject</code> returns an object with two methods
@@ -109,6 +210,10 @@ export default function ObserverPattern(): ReactNode {
           the new value.
         </p>
         <CodeBlock code={subjectCode} />
+
+        <Widget title="Try the observer pattern">
+          <ObserverWidget />
+        </Widget>
 
         <h2>Observer as a React hook</h2>
         <p>
@@ -125,6 +230,10 @@ export default function ObserverPattern(): ReactNode {
           method. No classes, no inheritance — just functions, closures, and
           composable cleanup.
         </Callout>
+
+        <Diagram caption="Notification flow through the Observer pattern">
+          <FlowDiagram steps={['createSubject()', 'subscribe(fn)', 'notify(value)', 'fn(value)']} />
+        </Diagram>
       </div>
     </>
   )
