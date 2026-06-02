@@ -1,8 +1,11 @@
+import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'mediator',
@@ -48,6 +51,132 @@ const sendMessage = (sender, text) => {
 sendMessage('Alice', 'Hey everyone!')
 sendMessage('Bob',   'Hi Alice!')`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+interface Message {
+  sender: string
+  text: string
+}
+
+function createMediator() {
+  const handlers: Record<string, Array<(payload: unknown) => void>> = {}
+  return {
+    on: (event: string, fn: (payload: unknown) => void): void => {
+      (handlers[event] ??= []).push(fn)
+    },
+    emit: (event: string, payload: unknown): void => {
+      (handlers[event] ?? []).forEach((fn) => fn(payload))
+    },
+  }
+}
+
+function MediatorWidget(): ReactNode {
+  const [log, setLog] = useState<Message[]>([])
+  const [aliceInput, setAliceInput] = useState('')
+  const [bobInput, setBobInput] = useState('')
+
+  const mediator = useMemo(() => {
+    const m = createMediator()
+    m.on('message', (payload: unknown) => {
+      const msg = payload as Message
+      setLog((prev) => [...prev, msg])
+    })
+    return m
+  }, [])
+
+  const handleSend = (sender: string, text: string) => {
+    if (!text.trim()) return
+    mediator.emit('message', { sender, text })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Sender: Alice */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-slate-700 w-14">Alice</span>
+        <input
+          type="text"
+          value={aliceInput}
+          onChange={(e) => setAliceInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSend('Alice', aliceInput)
+              setAliceInput('')
+            }
+          }}
+          placeholder="Type a message…"
+          className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            handleSend('Alice', aliceInput)
+            setAliceInput('')
+          }}
+          className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
+        >
+          Send
+        </button>
+      </div>
+
+      {/* Sender: Bob */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-slate-700 w-14">Bob</span>
+        <input
+          type="text"
+          value={bobInput}
+          onChange={(e) => setBobInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSend('Bob', bobInput)
+              setBobInput('')
+            }
+          }}
+          placeholder="Type a message…"
+          className="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            handleSend('Bob', bobInput)
+            setBobInput('')
+          }}
+          className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
+        >
+          Send
+        </button>
+      </div>
+
+      {/* Notification log */}
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Notifications via mediator
+        </p>
+        {log.length === 0 ? (
+          <p className="text-sm italic text-slate-400">
+            No messages yet. Send one!
+          </p>
+        ) : (
+          <div className="space-y-0.5 max-h-48 overflow-y-auto">
+            {log.map((msg, i) => (
+              <div
+                key={i}
+                className="rounded border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm"
+              >
+                <span className="font-medium text-slate-700">{msg.sender}</span>
+                <span className="text-slate-400">{' → '}</span>
+                <span className="text-slate-600">{msg.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function MediatorPattern(): ReactNode {
   return (
     <>
@@ -78,6 +207,13 @@ export default function MediatorPattern(): ReactNode {
           interfaces, no mutual references.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Mediator «interface»', 'ConcreteMediator', 'ColleagueA', 'ColleagueB']}
+            fp={['createMediator()', 'on / emit', 'callback A', 'callback B']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, <code>createMediator</code> returns an object with two
@@ -96,6 +232,14 @@ export default function MediatorPattern(): ReactNode {
           communicate through the hub instead of wiring up direct references.
           No classes, no coupling — just functions and callbacks.
         </Callout>
+
+        <Widget title="Try the mediator hub">
+          <MediatorWidget />
+        </Widget>
+
+        <Diagram caption="Messages flow through the mediator — components never touch each other">
+          <FlowDiagram steps={['Alice', 'mediator.emit', 'handlers["message"]', 'Bob notified']} />
+        </Diagram>
       </div>
     </>
   )
