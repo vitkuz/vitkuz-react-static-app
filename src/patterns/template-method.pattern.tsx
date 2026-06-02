@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'template-method',
@@ -75,6 +78,161 @@ const veggieStirFry = bakeRecipe(stirFry, wokCook, plate)
 veggieStirFry(['bell pepper', 'broccoli', 'carrot'])
 // 🍽️  [bell pepper (chopped), broccoli (chopped), carrot (chopped)] wok-fried 3 min`
 
+/* ------------------------------------------------------------------ */
+/*  Lifted functions — the same pure logic shown in the code example  */
+/* ------------------------------------------------------------------ */
+
+type FetchFn = (query: string) => Promise<string[]>
+type TransformFn = (items: string[]) => string[]
+type RenderFn = (data: string[]) => string
+
+interface ReportSteps {
+  fetch: FetchFn
+  transform: TransformFn
+  render: RenderFn
+}
+
+const makeReport =
+  ({ fetch, transform, render }: ReportSteps) =>
+  async (query: string): Promise<string> => {
+    const raw = await fetch(query)
+    const data = transform(raw)
+    return render(data)
+  }
+
+// --- Step implementations (mock data sources for the widget) ---
+
+const fetchMockUsers: FetchFn = async (_query) => ['alice', 'bob', 'charlie']
+
+const fetchMockProducts: FetchFn = async (_query) => ['widget', 'gadget', 'doohickey']
+
+const capFirst: TransformFn = (items) =>
+  items.map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+
+const lowerCase: TransformFn = (items) =>
+  items.map((s) => s.toLowerCase())
+
+const upperCase: TransformFn = (items) =>
+  items.map((s) => s.toUpperCase())
+
+const toCSV: RenderFn = (rows) => rows.join(',')
+
+const toJSON: RenderFn = (data) => JSON.stringify(data, null, 2)
+
+const toLines: RenderFn = (data) =>
+  data.map((r, i) => `${i + 1}. ${r}`).join('\n')
+
+/* ------------------------------------------------------------------ */
+/*  Interactive widget                                                  */
+/* ------------------------------------------------------------------ */
+
+const sources: Record<string, FetchFn> = {
+  users: fetchMockUsers,
+  products: fetchMockProducts,
+}
+
+const transforms: Record<string, TransformFn> = {
+  capitalize: capFirst,
+  lowercase: lowerCase,
+  uppercase: upperCase,
+}
+
+const renders: Record<string, RenderFn> = {
+  json: toJSON,
+  csv: toCSV,
+  lines: toLines,
+}
+
+function TemplateMethodWidget(): ReactNode {
+  const [source, setSource] = useState<string>('users')
+  const [transform, setTransform] = useState<string>('capitalize')
+  const [render, setRender] = useState<string>('json')
+  const [output, setOutput] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
+
+  const handleRun = async () => {
+    setLoading(true)
+    const report = makeReport({
+      fetch: sources[source]!,
+      transform: transforms[transform]!,
+      render: renders[render]!,
+    })
+    const result = await report(source)
+    setOutput(result)
+    setLoading(false)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <label
+          htmlFor="tm-source"
+          className="text-sm font-medium text-slate-700"
+        >
+          Source:
+        </label>
+        <select
+          id="tm-source"
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="users">Users</option>
+          <option value="products">Products</option>
+        </select>
+
+        <label
+          htmlFor="tm-transform"
+          className="text-sm font-medium text-slate-700"
+        >
+          Transform:
+        </label>
+        <select
+          id="tm-transform"
+          value={transform}
+          onChange={(e) => setTransform(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="capitalize">Capitalize</option>
+          <option value="lowercase">Lowercase</option>
+          <option value="uppercase">Uppercase</option>
+        </select>
+
+        <label
+          htmlFor="tm-render"
+          className="text-sm font-medium text-slate-700"
+        >
+          Render:
+        </label>
+        <select
+          id="tm-render"
+          value={render}
+          onChange={(e) => setRender(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="json">JSON</option>
+          <option value="csv">CSV</option>
+          <option value="lines">Numbered lines</option>
+        </select>
+
+        <button
+          onClick={handleRun}
+          disabled={loading}
+          className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100 disabled:opacity-50"
+        >
+          {loading ? 'Running…' : 'Run'}
+        </button>
+      </div>
+
+      {output && (
+        <pre className="overflow-x-auto rounded-md bg-slate-50 p-3 font-mono text-sm text-slate-800">
+          {output}
+        </pre>
+      )}
+    </div>
+  )
+}
+
 export default function TemplateMethodPattern(): ReactNode {
   return (
     <>
@@ -104,6 +262,13 @@ export default function TemplateMethodPattern(): ReactNode {
           <code>class</code> keyword.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['AbstractReport', 'fetch() «hook»', 'transform() «hook»', 'render() «hook»', 'CSVReport', 'JSONReport']}
+            fp={['makeReport({...})', 'fetchFromAPI', 'capFirst', 'toCSV', 'toJSON', 'csvReport / jsonReport']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, <code>makeReport</code> encodes the invariant three-step
@@ -112,6 +277,10 @@ export default function TemplateMethodPattern(): ReactNode {
           concrete variant by plugging in different functions for each step.
         </p>
         <CodeBlock code={templateMethodCode} />
+
+        <Widget title="Try the template method">
+          <TemplateMethodWidget />
+        </Widget>
 
         <h2>Curried skeleton</h2>
         <p>
@@ -128,6 +297,12 @@ export default function TemplateMethodPattern(): ReactNode {
           arguments, use partial application to fix recurring choices, and
           you get the same power as inheritance — without a single class.
         </Callout>
+
+        <Diagram caption="Three-step pipeline: fetch → transform → render">
+          <FlowDiagram
+            steps={['query', 'fetch', 'transform', 'render', 'result']}
+          />
+        </Diagram>
       </div>
     </>
   )
