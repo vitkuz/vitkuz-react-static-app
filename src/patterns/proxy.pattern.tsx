@@ -1,8 +1,11 @@
+import { useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'proxy',
@@ -72,6 +75,113 @@ fastAdd(2, 3) // logs "Computing…", returns 5
 fastAdd(2, 3) // cache hit — no log, returns 5
 fastAdd(2, 3) // cache hit — no log, returns 5`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — lifted from the memo example above                 */
+/* ------------------------------------------------------------------ */
+
+function memo<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
+  const cache = new Map<string, R>()
+  return (...args: A): R => {
+    const key = JSON.stringify(args)
+    if (cache.has(key)) return cache.get(key)!
+    const result = fn(...args)
+    cache.set(key, result)
+    return result
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  ProxyWidget — interactive memoization proxy demo                   */
+/* ------------------------------------------------------------------ */
+
+interface CallEntry {
+  args: string
+  result: number
+  cached: boolean
+}
+
+function ProxyWidget(): ReactNode {
+  const computeRef = useRef(0)
+  const [calls, setCalls] = useState<CallEntry[]>([])
+
+  // Memoized add — the ref tracks how many times the inner fn actually runs
+  const memoAdd = useMemo(() => {
+    computeRef.current = 0
+    const add = (a: number, b: number): number => {
+      computeRef.current++
+      return a + b
+    }
+    return memo(add)
+  }, [])
+
+  const handleCall = () => {
+    // Small range → cache hits after the first few calls
+    const a = Math.floor(Math.random() * 5)
+    const b = Math.floor(Math.random() * 5)
+    const before = computeRef.current
+    const result = memoAdd(a, b)
+    const cached = computeRef.current === before
+    setCalls((prev) => [
+      ...prev.slice(-9),
+      { args: `${a} + ${b}`, result, cached },
+    ])
+  }
+
+  const totalCalls = calls.length
+  const totalComputes = computeRef.current
+  const cacheHits = totalCalls - totalComputes
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={handleCall}
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+      >
+        Call memoized function
+      </button>
+
+      <div className="flex flex-wrap gap-4 text-sm">
+        <div>
+          <span className="text-slate-500">Calls: </span>
+          <span className="font-mono">{totalCalls}</span>
+        </div>
+        <div>
+          <span className="text-slate-500">Computations: </span>
+          <span className="font-mono">{totalComputes}</span>
+        </div>
+        <div>
+          <span className="text-slate-500">Cache hits: </span>
+          <span className="font-mono">{cacheHits}</span>
+        </div>
+      </div>
+
+      {calls.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-slate-500">
+            Recent calls (newest first)
+          </p>
+          {[...calls].reverse().map((call, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <span className="font-mono">
+                {call.args} = {call.result}
+              </span>
+              <span
+                className={
+                  call.cached
+                    ? 'rounded px-1.5 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700'
+                    : 'rounded px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-700'
+                }
+              >
+                {call.cached ? 'cached' : 'computed'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProxyPattern(): ReactNode {
   return (
     <>
@@ -102,6 +212,13 @@ export default function ProxyPattern(): ReactNode {
           (cache, access flag, etc.) — no classes needed.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Subject «interface»', 'RealSubject', 'Proxy']}
+            fp={['fn signature (= interface)', 'original function', 'memo / lazy (= proxy)']}
+          />
+        </Diagram>
+
         <h2>Functional example: lazy proxy</h2>
         <p>
           <code>lazy</code> takes a <strong>factory function</strong> and
@@ -122,12 +239,20 @@ export default function ProxyPattern(): ReactNode {
         </p>
         <CodeBlock code={memoProxyCode} />
 
+        <Widget title="Try the memoization proxy">
+          <ProxyWidget />
+        </Widget>
+
         <Callout tone="tip">
           In FP, the Proxy pattern is just a <strong>closure wrapping a
           function</strong>. Use it to add lazy evaluation, caching, or access
           checks without changing the original function's signature — pure
           composition over inheritance.
         </Callout>
+
+        <Diagram caption="Data flow through a memoizing proxy">
+          <FlowDiagram steps={['caller', 'proxy (memo)', 'original fn', 'result']} />
+        </Diagram>
       </div>
     </>
   )
