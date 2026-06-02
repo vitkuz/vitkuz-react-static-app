@@ -1,0 +1,132 @@
+name: Pi Dispatch
+
+on:
+    workflow_dispatch:
+        inputs:
+            prompt:
+                description: 'What should Pi build? (e.g. "Add a deleteOne operation")'
+                required: true
+                type: string
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            pull-requests: write
+            issues: write
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+            REPO: ${{ github.repository }}
+            RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            TASK: ${{ inputs.prompt }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+
+            - name: Build task prompt
+              run: |
+                  {
+                    echo "You are an autonomous coding agent in a checked-out git repository."
+                    echo "First read AGENTS.md and follow every repository convention in it."
+                    echo
+                    echo "## Task"
+                    printf '%s\n' "$TASK"
+                    echo
+                    echo "## Rules"
+                    echo "- Implement the task by editing files in the working directory only."
+                    echo "- Do NOT run git and do NOT open a PR yourself — the workflow branches, commits, and opens the PR."
+                    echo "- Match the existing code style and patterns in this repo; keep the change minimal."
+                    echo "- If the project has a build or test script, run it and make sure it passes."
+                  } > .pi-prompt.txt
+
+            - name: Register DeepSeek V4 Pro
+              run: |
+                  mkdir -p ~/.pi/agent
+                  cat > ~/.pi/agent/models.json <<'JSON'
+                  {
+                    "providers": {
+                      "deepseek": {
+                        "baseUrl": "https://api.deepseek.com/v1",
+                        "api": "openai-completions",
+                        "apiKey": "$DEEPSEEK_API_KEY",
+                        "models": [
+                          {
+                            "id": "deepseek-v4-pro",
+                            "name": "DeepSeek V4 Pro",
+                            "reasoning": true,
+                            "input": ["text"],
+                            "contextWindow": 1000000,
+                            "maxTokens": 65536,
+                            "cost": { "input": 0.435, "output": 0.87 }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                  JSON
+
+            - name: Run pi (DeepSeek)
+              env:
+                  NO_COLOR: '1'
+              run: |
+                  npx -y @mariozechner/pi-coding-agent \
+                    -p @./.pi-prompt.txt \
+                    --provider deepseek \
+                    --model deepseek-v4-pro \
+                    --tools read,write,edit,bash,grep,find,ls \
+                    --thinking high \
+                    --mode json \
+                    --session-dir .pi-session \
+                    --no-extensions \
+                    --no-skills \
+                    | tee pi-events.jsonl
+
+            - name: Export session transcript (HTML)
+              if: always()
+              run: |
+                  sid=$(ls -t .pi-session/*.json 2>/dev/null | head -1)
+                  if [ -n "$sid" ]; then
+                    npx -y @mariozechner/pi-coding-agent --export pi-transcript.html --session "$sid" || true
+                  fi
+
+            - name: Upload Pi transcript
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: pi-transcript
+                  path: |
+                      pi-events.jsonl
+                      pi-transcript.html
+                  if-no-files-found: ignore
+
+            - name: Open pull request
+              run: |
+                  rm -rf .pi-prompt.txt pi-events.jsonl pi-transcript.html .pi-session
+                  if [ -z "$(git status --porcelain)" ]; then
+                    echo "Pi made no file changes — nothing to open a PR for."
+                    exit 0
+                  fi
+                  BRANCH="pi/dispatch-${{ github.run_id }}"
+                  git config user.name "pi-agent[bot]"
+                  git config user.email "pi-agent@users.noreply.github.com"
+                  git checkout -b "$BRANCH"
+                  git add -A
+                  git commit -m "pi: ${TASK}"
+                  git push -u origin "$BRANCH"
+                  gh pr create \
+                    --repo "$REPO" \
+                    --base main \
+                    --head "$BRANCH" \
+                    --title "pi: ${TASK}" \
+                    --body "Automated changes by **Pi** (DeepSeek, model \`deepseek-v4-pro\`).
+
+                  Task: ${TASK}
+
+                  [CI run]($RUN_URL)"

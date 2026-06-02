@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Pi agent run artifacts (transcripts / sessions)
+.pi-session
+pi-events.jsonl
+pi-transcript.html
+pi-output.md
