@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import StepHeader from '../components/StepHeader'
 
 const patterns = [
   {
@@ -35,37 +36,35 @@ const patterns = [
 
 export default function Docs() {
   return (
-    <article className="prose prose-gray mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-black">
-        Introduction
-      </h1>
-      <p className="mt-4 leading-relaxed text-gray-500">
-        Welcome to the documentation. Explore functional programming patterns
-        with clear explanations and syntax-highlighted code examples written
-        in a pure functional style.
-      </p>
-
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Functional patterns
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Each pattern page explains the concept, when to reach for it, and
-        demonstrates it with practical JavaScript code.
-      </p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+    <>
+      <StepHeader
+        order={2}
+        title="Introduction"
+        intro="Welcome to the documentation. Explore functional programming patterns with clear explanations and syntax-highlighted code examples written in a pure functional style."
+      />
+      <div className="prose prose-slate max-w-none prose-headings:scroll-mt-20 prose-a:text-blue-700 prose-code:text-slate-800 prose-pre:bg-transparent prose-pre:p-0">
+        <h2>Functional patterns</h2>
+        <p>
+          Each pattern page explains the concept, when to reach for it, and
+          demonstrates it with practical JavaScript code.
+        </p>
+      </div>
+      <div className="not-prose mt-6 grid gap-4 sm:grid-cols-2">
         {patterns.map((p) => (
           <Link
             key={p.to}
             to={p.to}
-            className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100"
+            className="rounded-lg border border-slate-200 bg-white px-5 py-4 transition hover:border-blue-300 hover:bg-blue-50"
           >
-            <strong className="text-sm font-medium text-black">{p.title}</strong>
-            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+            <strong className="text-sm font-medium text-slate-900">
+              {p.title}
+            </strong>
+            <p className="mt-1 text-sm leading-relaxed text-slate-600">
               {p.desc}
             </p>
           </Link>
         ))}
       </div>
-    </article>
+    </>
   )
 }

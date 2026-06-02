@@ -1,4 +1,6 @@
+import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
+import Callout from '../components/Callout'
 
 const builtInCode = `// map – transform every element (returns new array)
 const doubled = [1, 2, 3, 4, 5].map((n) => n * 2)
@@ -57,59 +59,51 @@ state1 === state2 // true`
 
 export default function HigherOrderFunctions() {
   return (
-    <article className="prose prose-gray mx-auto max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-black">
-        Higher-Order Functions
-      </h1>
-      <p className="mt-4 leading-relaxed text-gray-500">
-        A higher-order function (HOF) is a function that either takes one or
-        more functions as arguments, returns a function, or both. HOFs are the
-        backbone of functional programming — they let you abstract over
-        behaviour, not just data.
-      </p>
+    <>
+      <StepHeader
+        order={6}
+        title="Higher-Order Functions"
+        intro="A higher-order function (HOF) is a function that either takes one or more functions as arguments, returns a function, or both. HOFs are the backbone of functional programming — they let you abstract over behaviour, not just data."
+      />
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        When to use it
-      </h2>
-      <ul className="mt-3 space-y-2 text-gray-500">
-        <li>You find yourself repeating the same looping or conditional logic.</li>
-        <li>You want to configure behaviour without duplicating code.</li>
-        <li>You need to wrap functions with cross-cutting concerns (logging, memoisation).</li>
-        <li>You want to build composable, testable building blocks.</li>
-      </ul>
+      <div className="prose prose-slate max-w-none prose-headings:scroll-mt-20 prose-a:text-blue-700 prose-code:text-slate-800 prose-pre:bg-transparent prose-pre:p-0">
+        <h2>When to use it</h2>
+        <ul>
+          <li>You find yourself repeating the same looping or conditional logic.</li>
+          <li>You want to configure behaviour without duplicating code.</li>
+          <li>You need to wrap functions with cross-cutting concerns (logging, memoisation).</li>
+          <li>You want to build composable, testable building blocks.</li>
+        </ul>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Built-in HOFs: map, filter, reduce
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        JavaScript&rsquo;s Array methods are classic HOFs — they accept a
-        function and apply it to each element without mutating the original.
-      </p>
-      <div className="mt-4">
+        <h2>Built-in HOFs: map, filter, reduce</h2>
+        <p>
+          JavaScript&rsquo;s Array methods are classic HOFs — they accept a
+          function and apply it to each element without mutating the original.
+        </p>
         <CodeBlock code={builtInCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Custom HOFs
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        Writing your own HOFs is straightforward. Here a factory creates
-        multiplier functions, and a decorator wraps any function with logging.
-      </p>
-      <div className="mt-4">
+        <h2>Custom HOFs</h2>
+        <p>
+          Writing your own HOFs is straightforward. Here a factory creates
+          multiplier functions, and a decorator wraps any function with logging.
+        </p>
         <CodeBlock code={customHofCode} />
-      </div>
 
-      <h2 className="mt-10 text-xl font-medium text-black">
-        Practical example: <code>once</code>
-      </h2>
-      <p className="mt-3 leading-relaxed text-gray-500">
-        A common HOF pattern — guarantee a function runs only once, caching
-        the result for subsequent calls.
-      </p>
-      <div className="mt-4">
+        <h2>
+          Practical example: <code>once</code>
+        </h2>
+        <p>
+          A common HOF pattern — guarantee a function runs only once, caching
+          the result for subsequent calls.
+        </p>
         <CodeBlock code={onceCode} />
+
+        <Callout tone="warn" title="Watch out for side effects">
+          HOFs work best with pure functions. If the wrapped function has side
+          effects (mutations, I/O), the abstraction can become misleading. Keep
+          your inner functions pure for predictable HOF behaviour.
+        </Callout>
       </div>
-    </article>
+    </>
   )
 }
