@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'state',
@@ -40,6 +43,74 @@ const light = fsm({
 light('red', 'tick')    // 'green'
 light('green', 'tick')  // 'yellow'`
 
+/* ------------------------------------------------------------------ */
+/*  Typed module-scope functions — same logic as the example above     */
+/* ------------------------------------------------------------------ */
+
+type LightState = 'green' | 'yellow' | 'red'
+type LightEvent = 'tick'
+
+const lightTransitions: Record<LightState, Record<LightEvent, LightState>> = {
+  green:  { tick: 'yellow' },
+  yellow: { tick: 'red' },
+  red:    { tick: 'green' },
+}
+
+const fsm = <S extends string, E extends string>(
+  states: Record<S, Partial<Record<E, S>>>
+) => (current: S, event: E): S => states[current]?.[event] ?? current
+
+const nextLight = fsm(lightTransitions)
+
+/* ------------------------------------------------------------------ */
+/*  Interactive widget                                                 */
+/* ------------------------------------------------------------------ */
+
+const lightColors: Record<LightState, string> = {
+  green: 'bg-emerald-500',
+  yellow: 'bg-amber-400',
+  red: 'bg-red-500',
+}
+
+function StateWidget(): ReactNode {
+  const [state, setState] = useState<LightState>('green')
+
+  const advance = () => setState((prev) => nextLight(prev, 'tick'))
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium text-slate-700">Current state:</span>
+        <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-1 text-sm font-mono">
+          <span
+            className={`inline-block h-3 w-3 rounded-full ${lightColors[state]}`}
+          />
+          {state}
+        </span>
+      </div>
+
+      <div className="text-sm text-slate-600">
+        Allowed events:{' '}
+        <span className="font-mono">
+          {Object.keys(lightTransitions[state]).join(', ')}
+        </span>
+      </div>
+
+      <button
+        onClick={advance}
+        className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-100"
+      >
+        tick
+      </button>
+
+      <div className="text-sm text-slate-500">
+        Next after tick:{' '}
+        <span className="font-mono">{nextLight(state, 'tick')}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function StatePattern(): ReactNode {
   return (
     <>
@@ -69,6 +140,13 @@ export default function StatePattern(): ReactNode {
           reducer. A transition map replaces the class hierarchy.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Context', 'State «interface»', 'ConcreteStateA', 'ConcreteStateB', 'ConcreteStateC']}
+            fp={['fsm(states)', '(state, event) → state', 'transitions map', 'green | yellow | red']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           A traffic light modelled with a transitions map and a lookup
@@ -85,6 +163,14 @@ export default function StatePattern(): ReactNode {
           back. No mutation, no classes — just pure functions over plain
           values.
         </Callout>
+
+        <Widget title="Try the traffic-light state machine">
+          <StateWidget />
+        </Widget>
+
+        <Diagram caption="Data flow through the state machine">
+          <FlowDiagram steps={['current state', 'event (tick)', 'next state']} />
+        </Diagram>
       </div>
     </>
   )
