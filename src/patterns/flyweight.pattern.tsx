@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'flyweight',
@@ -10,6 +13,49 @@ export const meta: PatternMeta = {
   navLabel: 'Flyweight',
   category: 'Structural',
   order: 11,
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+interface Glyph {
+  readonly char: string
+  readonly width: number
+  readonly height: number
+  readonly bitmap: string
+}
+
+const glyphCache = new Map<string, Glyph>()
+
+const getGlyph = (char: string): Glyph => {
+  if (glyphCache.has(char)) return glyphCache.get(char)!
+
+  const glyph: Glyph = Object.freeze({
+    char,
+    width: char === ' ' ? 6 : 12,
+    height: 18,
+    bitmap: `bitmap-of-${char}`,
+  }) as Glyph
+  glyphCache.set(char, glyph)
+  return glyph
+}
+
+const renderGlyph =
+  (glyph: Glyph) =>
+  (x: number, y: number, color: string): string =>
+    `glyph "${glyph.char}" at (${x}, ${y}) in ${color}`
+
+type GlyphStats = { total: number; unique: number; hits: number }
+
+function computeStats(chars: string[]): GlyphStats {
+  const total = chars.length
+  const before = glyphCache.size
+  chars.forEach((c) => getGlyph(c))
+  const after = glyphCache.size
+  const unique = after
+  const hits = total - (after - before)
+  return { total, unique, hits }
 }
 
 const flyweightCode = `// --- Intrinsic state: shared, immutable, cached ---
@@ -49,6 +95,73 @@ chars.forEach((glyph, i) => {
   render(x, y, 'slate')   // extrinsic state stays outside the shared object
 })`
 
+function FlyweightWidget(): ReactNode {
+  const [input, setInput] = useState('hello flyweight')
+  const chars = [...input]
+  const stats = computeStats(chars)
+  const glyphs = chars.map((c) => getGlyph(c))
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor="flyweight-input"
+          className="text-sm font-medium text-slate-700"
+        >
+          Text:
+        </label>
+        <input
+          id="flyweight-input"
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm font-mono"
+          placeholder="Type some text..."
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="text-xs text-slate-500">Total Requests</div>
+          <div className="text-lg font-semibold text-slate-900 font-mono">
+            {stats.total}
+          </div>
+        </div>
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="text-xs text-slate-500">Unique Instances</div>
+          <div className="text-lg font-semibold text-slate-900 font-mono">
+            {stats.unique}
+          </div>
+        </div>
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <div className="text-xs text-emerald-600">Cache Hits</div>
+          <div className="text-lg font-semibold text-emerald-700 font-mono">
+            {stats.hits}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        {glyphs.slice(0, 20).map((glyph, i) => (
+          <div
+            key={`${glyph.char}-${i}`}
+            className="flex justify-between text-sm text-slate-600"
+          >
+            <span className="font-mono">
+              {renderGlyph(glyph)(i * 14, 0, 'slate')}
+            </span>
+          </div>
+        ))}
+        {glyphs.length > 20 && (
+          <p className="text-xs text-slate-400 italic">
+            …and {glyphs.length - 20} more
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function FlyweightPattern(): ReactNode {
   return (
     <>
@@ -81,6 +194,21 @@ export default function FlyweightPattern(): ReactNode {
           passed as plain function arguments — no classes, no constructors.
         </p>
 
+        <CompareDiagram
+          oo={[
+            'FlyweightFactory',
+            'Flyweight «interface»',
+            'ConcreteFlyweight',
+            'Client',
+          ]}
+          fp={[
+            'getGlyph(char)',
+            'Glyph (frozen)',
+            'glyphCache (Map)',
+            'renderGlyph(glyph)(x,y,color)',
+          ]}
+        />
+
         <h2>Functional example</h2>
         <p>
           Below, <code>getGlyph</code> is a memoized factory that returns one
@@ -99,6 +227,12 @@ export default function FlyweightPattern(): ReactNode {
           No factory classes, no mutation — just a function, a{' '}
           <code>Map</code>, and <code>Object.freeze</code>.
         </Callout>
+
+        <Widget title="Try the flyweight cache">
+          <FlyweightWidget />
+        </Widget>
+
+        <FlowDiagram steps={['text', 'getGlyph(char)', 'cached Glyph', 'renderGlyph(x,y,color)']} />
       </div>
     </>
   )
