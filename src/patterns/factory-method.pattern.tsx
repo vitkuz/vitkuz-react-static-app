@@ -1,8 +1,11 @@
+import { useState, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'factory-method',
@@ -97,6 +100,107 @@ userService.endpoint('/login') // "https://api.example.com/login"
 const searchService = fromDev('search')
 searchService.endpoint('/query') // "http://localhost:4000/query"`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+interface Button {
+  render: () => string
+  click: () => void
+  os: string
+}
+
+const makeMacButton = (label: string): Button => {
+  let clicks = 0
+  return {
+    render: () => `🍎 [macOS] ${label} (clicks: ${clicks})`,
+    click: () => { clicks++ },
+    os: 'mac',
+  }
+}
+
+const makeWinButton = (label: string): Button => {
+  let clicks = 0
+  return {
+    render: () => `⊞ [Windows] ${label} (clicks: ${clicks})`,
+    click: () => { clicks++ },
+    os: 'win',
+  }
+}
+
+const makeLinuxButton = (label: string): Button => {
+  let clicks = 0
+  return {
+    render: () => `🐧 [Linux] ${label} (clicks: ${clicks})`,
+    click: () => { clicks++ },
+    os: 'linux',
+  }
+}
+
+const buttonFactories: Record<string, (label: string) => Button> = {
+  mac: makeMacButton,
+  win: makeWinButton,
+  linux: makeLinuxButton,
+}
+
+const createButton = (os: string, label: string): Button => {
+  const factory = buttonFactories[os]
+  if (!factory) throw new Error(`Unknown OS: ${os}`)
+  return factory(label)
+}
+
+/* ------------------------------------------------------------------ */
+/*  Interactive widget                                                 */
+/* ------------------------------------------------------------------ */
+
+function FactoryMethodWidget(): ReactNode {
+  const [os, setOs] = useState<string>('mac')
+  const label = 'Submit'
+  const [, forceRender] = useState<number>(0)
+  const productRef = useRef<Button>(createButton('mac', 'Submit'))
+  const prevOsRef = useRef<string>('mac')
+
+  if (prevOsRef.current !== os) {
+    prevOsRef.current = os
+    productRef.current = createButton(os, label)
+  }
+
+  const product = productRef.current
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label htmlFor="fm-os-select" className="text-sm font-medium text-slate-700">
+          Platform:
+        </label>
+        <select
+          id="fm-os-select"
+          value={os}
+          onChange={(e) => setOs(e.target.value)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="mac">🍎 macOS</option>
+          <option value="win">⊞ Windows</option>
+          <option value="linux">🐧 Linux</option>
+        </select>
+      </div>
+
+      <div>
+        <span className="text-sm text-slate-600">Output: </span>
+        <span className="font-mono text-sm text-slate-800">{product.render()}</span>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => { product.click(); forceRender((n) => n + 1) }}
+        className="rounded-md border border-slate-300 px-3 py-1 text-sm hover:bg-slate-100"
+      >
+        Click me
+      </button>
+    </div>
+  )
+}
+
 export default function FactoryMethodPattern(): ReactNode {
   return (
     <>
@@ -129,6 +233,13 @@ export default function FactoryMethodPattern(): ReactNode {
           arguments — no classes, no inheritance, no ceremony.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Creator', 'ConcreteCreator', 'Product «interface»', 'ConcreteProduct']}
+            fp={['createButton(os, label)', 'buttonFactories map', 'makeMacButton', 'makeWinButton']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, each UI-button variant is built by a small factory function.
@@ -154,6 +265,14 @@ export default function FactoryMethodPattern(): ReactNode {
           lean on currying when the factory needs pre-configuration. The
           calling code never knows (or cares) which variant it received.
         </Callout>
+
+        <Widget title="Try the button factory">
+          <FactoryMethodWidget />
+        </Widget>
+
+        <Diagram caption="Factory flow: arguments → factory lookup → product">
+          <FlowDiagram steps={['os + label', 'createButton', 'button.render()']} />
+        </Diagram>
       </div>
     </>
   )
