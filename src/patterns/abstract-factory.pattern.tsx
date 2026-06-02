@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'abstract-factory',
@@ -45,6 +48,101 @@ const chk = darkKit.makeCheckbox('I agree')
 const lightBtn = lightKit.makeButton('Save')
 // lightBtn.theme === 'light'   // true`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+type Theme = 'dark' | 'light'
+
+interface Product {
+  type: 'button' | 'checkbox'
+  label: string
+  theme: Theme
+  render: () => string
+}
+
+interface Kit {
+  makeButton: (label: string) => Product
+  makeCheckbox: (label: string) => Product
+}
+
+const themeKit = (theme: Theme): Kit => ({
+  makeButton: (label: string): Product => ({
+    type: 'button',
+    label,
+    theme,
+    render: () => `<button class="btn-${theme}">${label}</button>`,
+  }),
+  makeCheckbox: (label: string): Product => ({
+    type: 'checkbox',
+    label,
+    theme,
+    render: () =>
+      `<label class="chk-${theme}"><input type="checkbox"/> ${label}</label>`,
+  }),
+})
+
+const darkKit: Kit = themeKit('dark')
+const lightKit: Kit = themeKit('light')
+const kits: Record<Theme, Kit> = { dark: darkKit, light: lightKit }
+
+function AbstractFactoryWidget(): ReactNode {
+  const [theme, setTheme] = useState<Theme>('dark')
+  const kit: Kit = kits[theme]!
+  const btn = kit.makeButton('Submit')
+  const chk = kit.makeCheckbox('I agree')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor="theme-select"
+          className="text-sm font-medium text-slate-700"
+        >
+          Theme:
+        </label>
+        <select
+          id="theme-select"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value as Theme)}
+          className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <div className="rounded-md border border-slate-200 bg-white p-3">
+          <p className="mb-1 text-xs font-medium text-slate-400">
+            Produced family
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-mono text-slate-500">makeButton:</span>
+              <span className="font-mono text-slate-700">
+                {btn.render()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-mono text-slate-500">makeCheckbox:</span>
+              <span className="font-mono text-slate-700">
+                {chk.render()}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400">
+          Theme: <span className="font-mono text-slate-600">{btn.theme}</span>
+          {' — '}both products are{' '}
+          <span className="font-mono text-slate-600">{btn.theme}</span>
+          -themed, guaranteed by the kit.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function AbstractFactoryPattern(): ReactNode {
   return (
     <>
@@ -76,6 +174,25 @@ export default function AbstractFactoryPattern(): ReactNode {
           no interfaces, no subclasses.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={[
+              'AbstractFactory «interface»',
+              'DarkThemeFactory',
+              'LightThemeFactory',
+              'ButtonProduct',
+              'CheckboxProduct',
+            ]}
+            fp={[
+              'themeKit(theme)',
+              'makeButton(label)',
+              'makeCheckbox(label)',
+              'button{ type, label, theme }',
+              'checkbox{ type, label, theme }',
+            ]}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Below, <code>themeKit</code> is a higher-order function that accepts a{' '}
@@ -95,6 +212,14 @@ export default function AbstractFactoryPattern(): ReactNode {
           the call site and let the closure handle the rest — no class
           hierarchy required.
         </Callout>
+
+        <Widget title="Try the theme kits">
+          <AbstractFactoryWidget />
+        </Widget>
+
+        <Diagram caption="Data flow through the Abstract Factory pattern">
+          <FlowDiagram steps={['theme', 'themeKit', '{ makeButton, makeCheckbox }', 'products']} />
+        </Diagram>
       </div>
     </>
   )
