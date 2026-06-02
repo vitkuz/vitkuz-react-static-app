@@ -1,8 +1,11 @@
+import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type { PatternMeta } from '../shared/pattern.types'
 import StepHeader from '../components/StepHeader'
 import CodeBlock from '../components/CodeBlock'
 import Callout from '../components/Callout'
+import Widget from '../components/Widget'
+import { Diagram, CompareDiagram, FlowDiagram } from '../components/Diagram'
 
 export const meta: PatternMeta = {
   slug: 'prototype',
@@ -57,6 +60,144 @@ const opsDashboard = buildDashboard({
   refreshInterval: 10,
 })`
 
+/* ------------------------------------------------------------------ */
+/*  Shared logic — same pure functions shown in the code example      */
+/* ------------------------------------------------------------------ */
+
+interface EditorConfig {
+  theme: string
+  fontSize: number
+  lineNumbers: boolean
+  minimap: boolean
+}
+
+const baseConfig: Readonly<EditorConfig> = Object.freeze({
+  theme: 'light',
+  fontSize: 14,
+  lineNumbers: true,
+  minimap: false,
+})
+
+function clone(base: Readonly<EditorConfig>, overrides: Partial<EditorConfig>): EditorConfig {
+  return { ...base, ...overrides }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Interactive widget                                                 */
+/* ------------------------------------------------------------------ */
+
+function PrototypeWidget(): ReactNode {
+  const [theme, setTheme] = useState<string>(baseConfig.theme)
+  const [fontSize, setFontSize] = useState<number>(baseConfig.fontSize)
+  const [lineNumbers, setLineNumbers] = useState<boolean>(baseConfig.lineNumbers)
+  const [minimap, setMinimap] = useState<boolean>(baseConfig.minimap)
+
+  const overrides: Partial<EditorConfig> = useMemo(
+    () => ({
+      ...(theme !== baseConfig.theme ? { theme } : {}),
+      ...(fontSize !== baseConfig.fontSize ? { fontSize } : {}),
+      ...(lineNumbers !== baseConfig.lineNumbers ? { lineNumbers } : {}),
+      ...(minimap !== baseConfig.minimap ? { minimap } : {}),
+    }),
+    [theme, fontSize, lineNumbers, minimap],
+  )
+
+  const result: EditorConfig = useMemo(
+    () => clone(baseConfig, overrides),
+    [overrides],
+  )
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Base (immutable) */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Base (frozen)
+          </p>
+          <pre className="text-sm font-mono bg-slate-50 rounded-md border border-slate-200 p-3 text-slate-600 overflow-auto">
+            {JSON.stringify(baseConfig, null, 2)}
+          </pre>
+        </div>
+
+        {/* Cloned result */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-2">
+            Cloned result
+          </p>
+          <pre className="text-sm font-mono bg-blue-50 rounded-md border border-blue-200 p-3 text-blue-800 overflow-auto">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
+      </div>
+
+      {/* Override controls */}
+      <div className="border-t border-slate-200 pt-3 space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          Overrides
+        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="proto-theme" className="text-sm font-medium text-slate-700">
+              Theme:
+            </label>
+            <select
+              id="proto-theme"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+            >
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="proto-fontSize" className="text-sm font-medium text-slate-700">
+              Font size:
+            </label>
+            <input
+              id="proto-fontSize"
+              type="number"
+              min={8}
+              max={32}
+              value={fontSize}
+              onChange={(e) => setFontSize(Number(e.target.value))}
+              className="rounded-md border border-slate-300 px-2 py-1 text-sm font-mono w-20"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              id="proto-lineNumbers"
+              type="checkbox"
+              checked={lineNumbers}
+              onChange={(e) => setLineNumbers(e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor="proto-lineNumbers" className="text-sm font-medium text-slate-700">
+              Line numbers
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              id="proto-minimap"
+              type="checkbox"
+              checked={minimap}
+              onChange={(e) => setMinimap(e.target.checked)}
+              className="rounded"
+            />
+            <label htmlFor="proto-minimap" className="text-sm font-medium text-slate-700">
+              Minimap
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PrototypePattern(): ReactNode {
   return (
     <>
@@ -90,6 +231,13 @@ export default function PrototypePattern(): ReactNode {
           data.
         </p>
 
+        <Diagram title="Architecture Comparison">
+          <CompareDiagram
+            oo={['Prototype', 'clone() / copy()', 'ConcretePrototype', 'Client']}
+            fp={['baseConfig (frozen)', 'clone(base, overrides)', 'spread {…base, …overrides}', 'structuredClone (deep)']}
+          />
+        </Diagram>
+
         <h2>Functional example</h2>
         <p>
           Freeze a base configuration object to make it immutable. Then pipe
@@ -115,6 +263,14 @@ export default function PrototypePattern(): ReactNode {
           <code>clone()</code> / prototype-registry machinery — no interfaces,
           no class hierarchies, just copying and composing plain objects.
         </Callout>
+
+        <Widget title="Try cloning with overrides">
+          <PrototypeWidget />
+        </Widget>
+
+        <Diagram caption="Clone flow: frozen template → overrides → independent variant">
+          <FlowDiagram steps={['baseConfig', 'clone(base, overrides)', 'newConfig']} />
+        </Diagram>
       </div>
     </>
   )
